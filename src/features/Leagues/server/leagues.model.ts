@@ -1,6 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
 import type { League } from '../types/leagues.types';
 
+type LeagueDocument = Omit<League, 'userId'> & {
+  userId: mongoose.Types.ObjectId | string;
+};
+
 function isValidTakenPlayers(value: unknown): boolean {
   if (!Array.isArray(value)) return false;
 
@@ -47,12 +51,17 @@ function isValidTeams(value: unknown): boolean {
   );
 }
 
-const leagueSchema = new Schema<League>(
+const leagueSchema = new Schema<LeagueDocument>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     externalId: {
       type: String,
       required: true,
-      unique: true,
       index: true,
     },
     name: {
@@ -178,9 +187,12 @@ const leagueSchema = new Schema<League>(
 );
 
 leagueSchema.index({ name: 'text', description: 'text' });
+leagueSchema.index({ userId: 1, externalId: 1 }, { unique: true });
+leagueSchema.index({ userId: 1, isDefault: 1 });
 leagueSchema.index({ format: 1 });
 leagueSchema.index({ draftType: 1 });
 leagueSchema.index({ isDefault: 1 });
 
-export const LeagueModel: mongoose.Model<League> =
-  mongoose.models.League || mongoose.model<League>('League', leagueSchema);
+export const LeagueModel: mongoose.Model<LeagueDocument> =
+  mongoose.models.League ||
+  mongoose.model<LeagueDocument>('League', leagueSchema);

@@ -113,6 +113,7 @@ export type LeagueFilters = z.infer<typeof LeagueFiltersSchema>;
 
 export interface League extends LeagueInput {
   _id: string;
+  userId: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
