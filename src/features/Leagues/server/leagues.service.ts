@@ -1,8 +1,11 @@
+import { isValidObjectId } from 'mongoose';
+import { ForbiddenError } from '@/shared/server/http-errors';
 import { LeagueModel } from './leagues.model';
 import type { League, LeagueFilters } from '../types/leagues.types';
+import type { LeagueInput } from '../types/leagues.types';
 
 export class LeaguesService {
-  async getLeagues(filters: LeagueFilters = {}) {
+  async getLeagues(userId: string, filters: LeagueFilters = {}) {
     const {
       format,
       draftType,
@@ -12,7 +15,9 @@ export class LeaguesService {
       limit = 50,
     } = filters;
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      userId,
+    };
 
     if (format) {
       query.format = format;
@@ -51,20 +56,58 @@ export class LeaguesService {
     };
   }
 
-  async getLeagueById(id: string): Promise<League | null> {
-    return (await LeagueModel.findById(id).lean()) as League | null;
+  async getLeagueById(id: string, userId: string): Promise<League | null> {
+    if (!isValidObjectId(id)) {
+      return null;
+    }
+
+    const league = (await LeagueModel.findOne({
+      _id: id,
+      userId,
+    }).lean()) as League | null;
+
+    if (league) {
+      return league;
+    }
+
+    const existingLeague = await LeagueModel.exists({ _id: id });
+
+    if (existingLeague) {
+      throw new ForbiddenError('League does not belong to user');
+    }
+
+    return null;
   }
 
-  async getLeagueByExternalId(externalId: string): Promise<League | null> {
-    return (await LeagueModel.findOne({ externalId }).lean()) as League | null;
+  async getLeagueByExternalId(
+    externalId: string,
+    userId: string,
+  ): Promise<League | null> {
+    const league = (await LeagueModel.findOne({
+      externalId,
+      userId,
+    }).lean()) as League | null;
+
+    if (league) {
+      return league;
+    }
+
+    const existingLeague = await LeagueModel.exists({ externalId });
+
+    if (existingLeague) {
+      throw new ForbiddenError('League does not belong to user');
+    }
+
+    return null;
   }
 
   async upsertLeague(
-    leagueData: Omit<League, '_id' | 'createdAt' | 'updatedAt'>,
+    userId: string,
+    leagueData: LeagueInput,
   ): Promise<League> {
     const updated = await LeagueModel.findOneAndUpdate(
-      { externalId: leagueData.externalId },
-      { $set: leagueData },
+      { externalId: leagueData.externalId, userId },
+      { $set: { ...leagueData, userId } },
       { upsert: true, new: true, runValidators: true },
     ).lean();
 
@@ -72,12 +115,13 @@ export class LeaguesService {
   }
 
   async upsertLeagues(
-    leagues: Omit<League, '_id' | 'createdAt' | 'updatedAt'>[],
+    userId: string,
+    leagues: LeagueInput[],
   ): Promise<number> {
     const operations = leagues.map((league) => ({
       updateOne: {
-        filter: { externalId: league.externalId },
-        update: { $set: league },
+        filter: { externalId: league.externalId, userId },
+        update: { $set: { ...league, userId } },
         upsert: true,
       },
     }));
@@ -86,8 +130,27 @@ export class LeaguesService {
     return result.upsertedCount + result.modifiedCount;
   }
 
-  async deleteLeagueById(id: string): Promise<League | null> {
-    return (await LeagueModel.findByIdAndDelete(id).lean()) as League | null;
+  async deleteLeagueById(id: string, userId: string): Promise<League | null> {
+    if (!isValidObjectId(id)) {
+      return null;
+    }
+
+    const league = (await LeagueModel.findOneAndDelete({
+      _id: id,
+      userId,
+    }).lean()) as League | null;
+
+    if (league) {
+      return league;
+    }
+
+    const existingLeague = await LeagueModel.exists({ _id: id });
+
+    if (existingLeague) {
+      throw new ForbiddenError('League does not belong to user');
+    }
+
+    return null;
   }
 }
 

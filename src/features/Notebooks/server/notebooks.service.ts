@@ -1,4 +1,5 @@
 import { isValidObjectId } from 'mongoose';
+import { ForbiddenError } from '@/shared/server/http-errors';
 import { NotebookModel } from './notebooks.model';
 import type {
   CreateNotebookInput,
@@ -8,8 +9,13 @@ import type {
 } from '../types/notebooks.types';
 
 export class NotebooksService {
-  async listNotebooks(filters: NotebookFilters = {}): Promise<Notebook[]> {
-    const query: Record<string, unknown> = {};
+  async listNotebooks(
+    userId: string,
+    filters: NotebookFilters = {},
+  ): Promise<Notebook[]> {
+    const query: Record<string, unknown> = {
+      userId,
+    };
 
     if (filters.kind) {
       query.kind = filters.kind;
@@ -28,18 +34,37 @@ export class NotebooksService {
       .lean()) as unknown as Notebook[];
   }
 
-  async getNotebookById(id: string): Promise<Notebook | null> {
+  async getNotebookById(id: string, userId: string): Promise<Notebook | null> {
     if (!isValidObjectId(id)) {
       return null;
     }
 
-    return (await NotebookModel.findById(id).lean()) as unknown as Notebook | null;
+    const notebook = (await NotebookModel.findOne({
+      _id: id,
+      userId,
+    }).lean()) as unknown as Notebook | null;
+
+    if (notebook) {
+      return notebook;
+    }
+
+    const existingNotebook = await NotebookModel.exists({ _id: id });
+
+    if (existingNotebook) {
+      throw new ForbiddenError('Notebook does not belong to user');
+    }
+
+    return null;
   }
 
-  async createNotebook(input: CreateNotebookInput): Promise<Notebook> {
+  async createNotebook(
+    userId: string,
+    input: CreateNotebookInput,
+  ): Promise<Notebook> {
     if (input.kind === 'player' && input.playerId) {
       const existing = (await NotebookModel.findOneAndUpdate(
         {
+          userId,
           kind: 'player',
           $or: [
             { playerId: input.playerId },
@@ -48,6 +73,7 @@ export class NotebooksService {
         },
         {
           $set: {
+            userId,
             name: input.name,
             content: input.content ?? '',
             playerName: input.playerName,
@@ -65,6 +91,7 @@ export class NotebooksService {
     }
 
     const notebook = await NotebookModel.create({
+      userId,
       kind: input.kind,
       name: input.name,
       content: input.content ?? '',
@@ -77,14 +104,18 @@ export class NotebooksService {
 
   async updateNotebook(
     id: string,
+    userId: string,
     updates: UpdateNotebookInput,
   ): Promise<Notebook | null> {
     if (!isValidObjectId(id)) {
       return null;
     }
 
-    return (await NotebookModel.findByIdAndUpdate(
-      id,
+    const notebook = (await NotebookModel.findOneAndUpdate(
+      {
+        _id: id,
+        userId,
+      },
       {
         $set: updates,
       },
@@ -93,14 +124,41 @@ export class NotebooksService {
         runValidators: true,
       },
     ).lean()) as unknown as Notebook | null;
+
+    if (notebook) {
+      return notebook;
+    }
+
+    const existingNotebook = await NotebookModel.exists({ _id: id });
+
+    if (existingNotebook) {
+      throw new ForbiddenError('Notebook does not belong to user');
+    }
+
+    return null;
   }
 
-  async deleteNotebook(id: string): Promise<Notebook | null> {
+  async deleteNotebook(id: string, userId: string): Promise<Notebook | null> {
     if (!isValidObjectId(id)) {
       return null;
     }
 
-    return (await NotebookModel.findByIdAndDelete(id).lean()) as unknown as Notebook | null;
+    const notebook = (await NotebookModel.findOneAndDelete({
+      _id: id,
+      userId,
+    }).lean()) as unknown as Notebook | null;
+
+    if (notebook) {
+      return notebook;
+    }
+
+    const existingNotebook = await NotebookModel.exists({ _id: id });
+
+    if (existingNotebook) {
+      throw new ForbiddenError('Notebook does not belong to user');
+    }
+
+    return null;
   }
 }
 

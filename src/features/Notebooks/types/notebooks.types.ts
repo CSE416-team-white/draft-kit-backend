@@ -4,6 +4,7 @@ export const NotebookKindSchema = z.enum(['custom', 'player']);
 
 export const NotebookSchema = z.object({
   _id: z.string(),
+  userId: z.string(),
   kind: NotebookKindSchema,
   name: z.string().trim().min(1),
   content: z.string(),
