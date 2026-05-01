@@ -4,15 +4,28 @@ import type { League } from '../types/leagues.types';
 function isValidTakenPlayers(value: unknown): boolean {
   if (!Array.isArray(value)) return false;
 
+  function isValidDraftPickMeta(meta: unknown): boolean {
+    if (!Array.isArray(meta) || meta.length !== 3) return false;
+    const [pickNumber, nominatingTeamId, winningTeamId] = meta;
+    return (
+      typeof pickNumber === 'number' &&
+      Number.isInteger(pickNumber) &&
+      pickNumber >= 1 &&
+      typeof nominatingTeamId === 'string' &&
+      typeof winningTeamId === 'string'
+    );
+  }
+
   return value.every(
     (entry) =>
       Array.isArray(entry) &&
-      entry.length === 4 &&
+      (entry.length === 4 || entry.length === 5) &&
       typeof entry[0] === 'string' &&
       typeof entry[1] === 'string' &&
       typeof entry[2] === 'string' &&
       typeof entry[3] === 'number' &&
-      entry[3] >= 0,
+      entry[3] >= 0 &&
+      (entry.length === 4 || isValidDraftPickMeta(entry[4])),
   );
 }
 
@@ -136,7 +149,7 @@ const leagueSchema = new Schema<League>(
       validate: {
         validator: isValidTakenPlayers,
         message:
-          'taken_players must be [player_id, team_id, position_slot, price] tuples',
+          'taken_players must be [player_id, team_id, position_slot, price] or [player_id, team_id, position_slot, price, draft_pick] tuples',
       },
     },
     draft_picks: {
