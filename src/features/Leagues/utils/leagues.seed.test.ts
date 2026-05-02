@@ -3,6 +3,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 import { beforeAll, beforeEach, afterAll, describe, expect, it } from 'vitest';
 import { connectDb } from '@/shared/server/connect-db';
+import { usersService } from '@/features/Users/server/users.service';
 import { LeagueModel } from '../server/leagues.model';
 import { seedDefaultLeagues } from './leagues.seed';
 
@@ -51,6 +52,7 @@ describe('seedDefaultLeagues', () => {
 
   it('seeds the default league into the real database', async () => {
     await seedDefaultLeagues();
+    const systemUser = await usersService.getSystemUser();
 
     const league = await LeagueModel.findOne({
       externalId: 'draft-kit-standard-auction',
@@ -58,6 +60,7 @@ describe('seedDefaultLeagues', () => {
 
     expect(league).toBeTruthy();
     expect(league?.name).toBe('Draft Kit Standard Auction');
+    expect(league?.userId.toString()).toBe(systemUser._id.toString());
   });
 
   it('does not create duplicates on repeated seed runs', async () => {

@@ -17,7 +17,7 @@ const cached = global.__draftkit_mongoose ?? {
 global.__draftkit_mongoose = cached;
 
 export async function connectDb(): Promise<typeof mongoose> {
-  const mongodbUri = process.env.MONGODB_URI;
+  const mongodbUri = process.env.MONGODB_URI?.trim().replace(/^['"]|['"]$/g, '');
 
   if (!mongodbUri) {
     throw new Error('MONGODB_URI is required');

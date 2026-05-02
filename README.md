@@ -20,7 +20,7 @@ npm install
 cp .env.example .env.local
 
 # Run
-npm run dev              # Dev server (http://localhost:3001)
+npm run dev              # Dev server (http://localhost:3002)
 npm run build            # Production build
 npm start                # Production server
 npm test                 # Run tests
@@ -28,6 +28,19 @@ npm test                 # Run tests
 
 Set `MONGODB_URI` and optionally `MONGODB_DB_NAME` in `.env.local`.
 Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of allowed frontend origins for browser requests.
+
+## User Isolation
+
+All league and notebook API routes now require the `X-User-Id` request header.
+
+- `POST /api/users` creates or reuses a user and returns the Mongo `_id`
+- `GET /api/users/me` returns the user identified by `X-User-Id`
+- `GET|POST /api/leagues` require `X-User-Id`
+- `GET|PUT|DELETE /api/leagues/[leagueId]` require `X-User-Id`
+- `GET|POST /api/notebooks` require `X-User-Id`
+- `GET|PUT|DELETE /api/notebooks/[id]` require `X-User-Id`
+
+Ownership is enforced in the service layer. Requests with a missing or invalid `X-User-Id` return `401`. Requests for another user's league or notebook return `403`.
 
 ## Adding a Feature
 

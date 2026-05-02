@@ -6,7 +6,7 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? '')
   .filter(Boolean);
 
 const defaultAllowedHeaders =
-  'Origin, X-Requested-With, Content-Type, Accept, Authorization';
+  'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-User-Id';
 
 function isAllowedOrigin(origin: string): boolean {
   return allowedOrigins.includes(origin);

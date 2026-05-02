@@ -1,8 +1,62 @@
+import { isValidObjectId } from 'mongoose';
+import { ForbiddenError } from '@/shared/server/http-errors';
 import { LeagueModel } from './leagues.model';
 import type { League, LeagueFilters } from '../types/leagues.types';
+import type { LeagueInput } from '../types/leagues.types';
+
+function buildLeagueUpdate(
+  userId: string,
+  leagueData: LeagueInput,
+): Record<string, unknown> {
+  const update: Record<string, unknown> = {
+    userId,
+    externalId: leagueData.externalId,
+    name: leagueData.name,
+    format: leagueData.format,
+    draftType: leagueData.draftType,
+    battingCategories: leagueData.battingCategories,
+    pitchingCategories: leagueData.pitchingCategories,
+    rosterSlots: leagueData.rosterSlots,
+    isDefault: leagueData.isDefault,
+  };
+
+  if (leagueData.description !== undefined) {
+    update.description = leagueData.description;
+  }
+
+  if (leagueData.totalBudget !== undefined) {
+    update.totalBudget = leagueData.totalBudget;
+  }
+
+  if (leagueData.taken_players !== undefined) {
+    update.taken_players = leagueData.taken_players;
+  }
+
+  if (leagueData.draft_picks !== undefined) {
+    update.draft_picks = leagueData.draft_picks;
+  }
+
+  if (leagueData.teams !== undefined) {
+    update.teams = leagueData.teams;
+  }
+
+  if (leagueData.draftStateJson !== undefined) {
+    update.draftStateJson = leagueData.draftStateJson;
+  }
+
+  if (leagueData.categoryWeights !== undefined) {
+    update.categoryWeights = leagueData.categoryWeights;
+  }
+
+  if (leagueData.minorLeagueSlotsPerTeam !== undefined) {
+    update.minorLeagueSlotsPerTeam = leagueData.minorLeagueSlotsPerTeam;
+  }
+
+  return update;
+}
 
 export class LeaguesService {
-  async getLeagues(filters: LeagueFilters = {}) {
+  async getLeagues(userId: string, filters: LeagueFilters = {}) {
     const {
       format,
       draftType,
@@ -12,7 +66,9 @@ export class LeaguesService {
       limit = 50,
     } = filters;
 
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = {
+      userId,
+    };
 
     if (format) {
       query.format = format;
@@ -51,33 +107,88 @@ export class LeaguesService {
     };
   }
 
-  async getLeagueById(id: string): Promise<League | null> {
-    return (await LeagueModel.findById(id).lean()) as League | null;
+  async getLeagueById(id: string, userId: string): Promise<League | null> {
+    if (!isValidObjectId(id)) {
+      return null;
+    }
+
+    const league = (await LeagueModel.findOne({
+      _id: id,
+      userId,
+    }).lean()) as League | null;
+
+    if (league) {
+      return league;
+    }
+
+    const existingLeague = await LeagueModel.exists({ _id: id });
+
+    if (existingLeague) {
+      throw new ForbiddenError('League does not belong to user');
+    }
+
+    return null;
   }
 
-  async getLeagueByExternalId(externalId: string): Promise<League | null> {
-    return (await LeagueModel.findOne({ externalId }).lean()) as League | null;
+  async getLeagueByExternalId(
+    externalId: string,
+    userId: string,
+  ): Promise<League | null> {
+    const league = (await LeagueModel.findOne({
+      externalId,
+      userId,
+    }).lean()) as League | null;
+
+    if (league) {
+      return league;
+    }
+
+    const existingLeague = await LeagueModel.exists({ externalId });
+
+    if (existingLeague) {
+      throw new ForbiddenError('League does not belong to user');
+    }
+
+    return null;
   }
 
   async upsertLeague(
-    leagueData: Omit<League, '_id' | 'createdAt' | 'updatedAt'>,
+    userId: string,
+    leagueData: LeagueInput,
   ): Promise<League> {
-    const updated = await LeagueModel.findOneAndUpdate(
-      { externalId: leagueData.externalId },
-      { $set: leagueData },
-      { upsert: true, new: true, runValidators: true },
-    ).lean();
+    const filter = { externalId: leagueData.externalId, userId };
+    const update = buildLeagueUpdate(userId, leagueData);
 
-    return updated as unknown as League;
+    await LeagueModel.findOneAndUpdate(
+      { externalId: leagueData.externalId, userId },
+      { $set: update },
+      { upsert: true, new: true, runValidators: true },
+    );
+
+    let persisted = (await LeagueModel.findOne(filter).lean()) as League | null;
+
+    if (
+      leagueData.draftStateJson !== undefined &&
+      persisted &&
+      persisted.draftStateJson === undefined
+    ) {
+      await LeagueModel.updateOne(filter, {
+        $set: { draftStateJson: leagueData.draftStateJson },
+      });
+      persisted = (await LeagueModel.findOne(filter).lean()) as League | null;
+    }
+
+    return persisted as League;
   }
 
   async upsertLeagues(
-    leagues: Omit<League, '_id' | 'createdAt' | 'updatedAt'>[],
+    userId: string,
+    leagues: LeagueInput[],
   ): Promise<number> {
     const operations = leagues.map((league) => ({
       updateOne: {
-        filter: { externalId: league.externalId },
-        update: { $set: league },
+        filter: { externalId: league.externalId, userId },
+        update: { $set: buildLeagueUpdate(userId, league) },
         upsert: true,
       },
     }));
@@ -86,8 +197,27 @@ export class LeaguesService {
     return result.upsertedCount + result.modifiedCount;
   }
 
-  async deleteLeagueById(id: string): Promise<League | null> {
-    return (await LeagueModel.findByIdAndDelete(id).lean()) as League | null;
+  async deleteLeagueById(id: string, userId: string): Promise<League | null> {
+    if (!isValidObjectId(id)) {
+      return null;
+    }
+
+    const league = (await LeagueModel.findOneAndDelete({
+      _id: id,
+      userId,
+    }).lean()) as League | null;
+
+    if (league) {
+      return league;
+    }
+
+    const existingLeague = await LeagueModel.exists({ _id: id });
+
+    if (existingLeague) {
+      throw new ForbiddenError('League does not belong to user');
+    }
+
+    return null;
   }
 }
 
