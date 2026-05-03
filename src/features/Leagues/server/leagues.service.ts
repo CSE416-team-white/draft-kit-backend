@@ -40,10 +40,6 @@ function buildLeagueUpdate(
     update.teams = leagueData.teams;
   }
 
-  if (leagueData.draftStateJson !== undefined) {
-    update.draftStateJson = leagueData.draftStateJson;
-  }
-
   if (leagueData.categoryWeights !== undefined) {
     update.categoryWeights = leagueData.categoryWeights;
   }
@@ -156,27 +152,13 @@ export class LeaguesService {
     userId: string,
     leagueData: LeagueInput,
   ): Promise<League> {
-    const filter = { externalId: leagueData.externalId, userId };
     const update = buildLeagueUpdate(userId, leagueData);
 
-    await LeagueModel.findOneAndUpdate(
+    const persisted = await LeagueModel.findOneAndUpdate(
       { externalId: leagueData.externalId, userId },
       { $set: update },
       { upsert: true, new: true, runValidators: true },
-    );
-
-    let persisted = (await LeagueModel.findOne(filter).lean()) as League | null;
-
-    if (
-      leagueData.draftStateJson !== undefined &&
-      persisted &&
-      persisted.draftStateJson === undefined
-    ) {
-      await LeagueModel.updateOne(filter, {
-        $set: { draftStateJson: leagueData.draftStateJson },
-      });
-      persisted = (await LeagueModel.findOne(filter).lean()) as League | null;
-    }
+    ).lean();
 
     return persisted as League;
   }

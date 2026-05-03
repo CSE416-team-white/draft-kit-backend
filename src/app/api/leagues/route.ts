@@ -66,10 +66,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       data: league,
-      debug: {
-        receivedHasDraftStateJson: Boolean(payload.draftStateJson),
-        savedHasDraftStateJson: Boolean(league.draftStateJson),
-      },
     });
   } catch (error) {
     if (error instanceof ZodError) {
