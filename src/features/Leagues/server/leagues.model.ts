@@ -190,6 +190,10 @@ const leagueSchema = new Schema<LeagueDocument>(
       type: Number,
       min: 0,
     },
+    taxiSquadPlayersPerTeam: {
+      type: Number,
+      min: 0,
+    },
   },
   {
     timestamps: true,

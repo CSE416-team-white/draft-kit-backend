@@ -108,6 +108,8 @@ describeWithMongo('LeaguesService', () => {
         BENCH: 0,
       },
       totalBudget: 260,
+      minorLeagueSlotsPerTeam: 4,
+      taxiSquadPlayersPerTeam: 3,
       taken_players: [],
       teams: [['team-1', 'Team 1', 260]],
       isDefault: false,
@@ -122,6 +124,8 @@ describeWithMongo('LeaguesService', () => {
     expect(byId?._id.toString()).toBe(created._id.toString());
     expect(byExternalId?.name).toBe('Vitest CRUD League');
     expect(String(byId?.userId)).toBe(String(primaryUserId));
+    expect(byId?.minorLeagueSlotsPerTeam).toBe(4);
+    expect(byId?.taxiSquadPlayersPerTeam).toBe(3);
   });
 
   it('performs real filter and pagination queries against MongoDB', async () => {
