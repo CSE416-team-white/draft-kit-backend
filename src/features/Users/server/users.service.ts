@@ -1,6 +1,10 @@
 import { isValidObjectId } from 'mongoose';
 import { UserModel } from './users.model';
-import type { CreateUserInput, User } from '../types/users.types';
+import type {
+  CreateUserInput,
+  UpsertProviderUserInput,
+  User,
+} from '../types/users.types';
 
 export const SYSTEM_USER_EXTERNAL_ID = 'system';
 export const SYSTEM_USER_NAME = 'System';
@@ -33,6 +37,33 @@ export class UsersService {
     });
 
     return user.toObject() as User;
+  }
+
+  async upsertProviderUser(input: UpsertProviderUserInput): Promise<User> {
+    const user = await UserModel.findOneAndUpdate(
+      {
+        authProvider: input.authProvider,
+        providerSubject: input.providerSubject,
+      },
+      {
+        $set: {
+          email: input.email,
+          name: input.name,
+          avatarUrl: input.avatarUrl ?? null,
+        },
+        $setOnInsert: {
+          authProvider: input.authProvider,
+          providerSubject: input.providerSubject,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      },
+    ).lean();
+
+    return user as User;
   }
 
   async getSystemUser(): Promise<User> {
