@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { ZodError, z } from 'zod';
 import { leaguesService } from '@/features/Leagues/server/leagues.service';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 
 type RouteContext = {
@@ -16,7 +16,7 @@ const FinishDraftSchema = z.object({
 export async function POST(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const { leagueId } = await context.params;
 
     const payload = FinishDraftSchema.parse(await request.json());
@@ -55,4 +55,3 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
-

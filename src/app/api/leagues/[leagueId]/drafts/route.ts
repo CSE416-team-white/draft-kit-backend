@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 import { CreateLeagueDraftSchema } from '@/features/Leagues/types/leagueDrafts.types';
 import { leagueDraftsService } from '@/features/Leagues/server/leagueDrafts.service';
@@ -13,7 +13,7 @@ type RouteContext = {
 export async function GET(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const { leagueId } = await context.params;
 
     const drafts = await leagueDraftsService.listDrafts(leagueId, userId);
@@ -42,7 +42,7 @@ export async function GET(request: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const { leagueId } = await context.params;
 
     const payload = CreateLeagueDraftSchema.parse(await request.json().catch(() => ({})));
@@ -69,4 +69,3 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
-

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 import { leagueDraftsService } from '@/features/Leagues/server/leagueDrafts.service';
 
@@ -11,7 +11,7 @@ type RouteContext = {
 export async function GET(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const { draftId } = await context.params;
 
     const draft = await leagueDraftsService.getDraftById(draftId, userId);
@@ -36,4 +36,3 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ success: false, message }, { status: 500 });
   }
 }
-
