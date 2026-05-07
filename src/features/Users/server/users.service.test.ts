@@ -49,6 +49,7 @@ describeWithMongo('UsersService', () => {
     await UserModel.deleteMany({
       $or: [
         { externalId: { $regex: `^${testPrefix}` } },
+        { providerSubject: { $regex: `^${testPrefix}` } },
         { name: { $regex: `^${testPrefix}` } },
       ],
     });
@@ -58,6 +59,7 @@ describeWithMongo('UsersService', () => {
     await UserModel.deleteMany({
       $or: [
         { externalId: { $regex: `^${testPrefix}` } },
+        { providerSubject: { $regex: `^${testPrefix}` } },
         { name: { $regex: `^${testPrefix}` } },
       ],
     });
@@ -101,5 +103,28 @@ describeWithMongo('UsersService', () => {
 
     expect(deleted?._id.toString()).toBe(created._id.toString());
     expect(loaded).toBeNull();
+  });
+
+  it('reuses the same Google user for a repeated provider subject', async () => {
+    const created = await service.upsertProviderUser({
+      authProvider: 'google',
+      providerSubject: `${testPrefix}-google-subject`,
+      email: 'first@example.com',
+      name: `${testPrefix}-google-user`,
+      avatarUrl: 'https://example.com/avatar-1.png',
+    });
+
+    const reused = await service.upsertProviderUser({
+      authProvider: 'google',
+      providerSubject: `${testPrefix}-google-subject`,
+      email: 'updated@example.com',
+      name: `${testPrefix}-google-user-updated`,
+      avatarUrl: 'https://example.com/avatar-2.png',
+    });
+
+    expect(reused._id.toString()).toBe(created._id.toString());
+    expect(reused.name).toBe(`${testPrefix}-google-user-updated`);
+    expect(reused.email).toBe('updated@example.com');
+    expect(reused.avatarUrl).toBe('https://example.com/avatar-2.png');
   });
 });
