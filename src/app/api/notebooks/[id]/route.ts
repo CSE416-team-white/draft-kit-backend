@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 import { UpdateNotebookSchema } from '@/features/Notebooks/types/notebooks.types';
 import { notebooksService } from '@/features/Notebooks/server/notebooks.service';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 
 type RouteContext = {
@@ -15,7 +15,7 @@ type RouteContext = {
 export async function GET(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
 
     const { id } = await context.params;
     const notebook = await notebooksService.getNotebookById(id, userId);
@@ -51,7 +51,7 @@ export async function GET(request: Request, context: RouteContext) {
 export async function PUT(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
 
     const { id } = await context.params;
     const payload = UpdateNotebookSchema.parse(await request.json());
@@ -95,7 +95,7 @@ export async function PUT(request: Request, context: RouteContext) {
 export async function DELETE(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
 
     const { id } = await context.params;
     const notebook = await notebooksService.deleteNotebook(id, userId);

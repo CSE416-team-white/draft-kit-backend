@@ -7,14 +7,14 @@ import {
 import { leaguesService } from '@/features/Leagues/server/leagues.service';
 import { seedDefaultLeagues } from '@/features/Leagues/utils/leagues.seed';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 
 export async function GET(request: Request) {
   try {
     await connectDb();
     await seedDefaultLeagues();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
 
     const filters = LeagueFiltersSchema.parse(
       Object.fromEntries(new URL(request.url).searchParams.entries()),
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
 
     const payload = LeagueSchema.parse(await request.json());
     const league = await leaguesService.upsertLeague(userId, payload);

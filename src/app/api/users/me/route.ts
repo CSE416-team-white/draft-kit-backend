@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { usersService } from '@/features/Users/server/users.service';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 
 export async function GET(request: Request) {
   try {
     await connectDb();
 
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const user = await usersService.getUserById(userId);
 
     if (!user) {

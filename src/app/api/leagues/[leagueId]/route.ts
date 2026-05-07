@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { leaguesService } from '@/features/Leagues/server/leagues.service';
 import { connectDb } from '@/shared/server/connect-db';
-import { getUserId } from '@/shared/server/get-user-id';
+import { getAuthenticatedUserId } from '@/shared/server/get-user-id';
 import { HttpError } from '@/shared/server/http-errors';
 
 type RouteContext = {
@@ -15,7 +15,7 @@ function isObjectId(value: string): boolean {
 export async function GET(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const { leagueId } = await context.params;
 
     const league = isObjectId(leagueId)
@@ -47,7 +47,7 @@ export async function GET(request: Request, context: RouteContext) {
 export async function DELETE(request: Request, context: RouteContext) {
   try {
     await connectDb();
-    const userId = getUserId(request);
+    const userId = getAuthenticatedUserId(request);
     const { leagueId } = await context.params;
 
     const existingLeague = isObjectId(leagueId)
