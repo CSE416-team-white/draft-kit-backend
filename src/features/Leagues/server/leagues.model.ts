@@ -124,6 +124,11 @@ const leagueSchema = new Schema<LeagueDocument>(
       required: true,
       enum: ['auction', 'snake'],
     },
+    leagueType: {
+      type: String,
+      enum: ['MLB', 'AL', 'NL'],
+      default: 'MLB',
+    },
     battingCategories: {
       type: [String],
       required: true,
