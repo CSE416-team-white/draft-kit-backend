@@ -12,6 +12,7 @@ export const RosterSlotsSchema = z.object({
   SP: z.number().int().min(0).default(2),
   RP: z.number().int().min(0).default(2),
   UTIL: z.number().int().min(0).default(0),
+  P: z.number().int().min(0).default(0),
   BENCH: z.number().int().min(0).default(0),
 });
 
@@ -54,6 +55,8 @@ export const LeagueFormatSchema = z.enum([
 ]);
 
 export const DraftTypeSchema = z.enum(['auction', 'snake']);
+
+export const LeagueTypeSchema = z.enum(['MLB', 'AL', 'NL']);
 
 export const DraftPickMetaSchema = z.tuple([
   z.number().int().min(1), // pick number
@@ -98,6 +101,7 @@ export const LeagueSchema = z.object({
   description: z.string().optional(),
   format: LeagueFormatSchema,
   draftType: DraftTypeSchema,
+  leagueType: LeagueTypeSchema.default('MLB'),
   battingCategories: z.array(BattingCategorySchema).min(1),
   pitchingCategories: z.array(PitchingCategorySchema).min(1),
   rosterSlots: RosterSlotsSchema,
@@ -127,6 +131,7 @@ export type DraftPickMeta = z.infer<typeof DraftPickMetaSchema>;
 export type DraftPick = z.infer<typeof DraftPickSchema>;
 export type LeagueDraft = z.infer<typeof LeagueDraftSchema>;
 export type LeagueTeam = z.infer<typeof LeagueTeamSchema>;
+export type LeagueType = z.infer<typeof LeagueTypeSchema>;
 export type LeagueInput = z.infer<typeof LeagueSchema>;
 export type LeagueFilters = z.infer<typeof LeagueFiltersSchema>;
 
@@ -141,6 +146,7 @@ export type CreateLeagueInput = {
   name: string;
   teams: number;
   draftType: 'auction';
+  leagueType?: LeagueType;
   rosterSlots: RosterSlots;
   totalBudget: number;
   takenPlayers?: TakenPlayer[];

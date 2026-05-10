@@ -124,6 +124,11 @@ const leagueSchema = new Schema<LeagueDocument>(
       required: true,
       enum: ['auction', 'snake'],
     },
+    leagueType: {
+      type: String,
+      enum: ['MLB', 'AL', 'NL'],
+      default: 'MLB',
+    },
     battingCategories: {
       type: [String],
       required: true,
@@ -174,6 +179,7 @@ const leagueSchema = new Schema<LeagueDocument>(
       SP: { type: Number, default: 2 },
       RP: { type: Number, default: 2 },
       UTIL: { type: Number, default: 0 },
+      P: { type: Number, default: 0 },
       BENCH: { type: Number, default: 0 },
     },
     totalBudget: {

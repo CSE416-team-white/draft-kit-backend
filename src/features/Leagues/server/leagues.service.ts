@@ -14,6 +14,7 @@ function buildLeagueUpdate(
     name: leagueData.name,
     format: leagueData.format,
     draftType: leagueData.draftType,
+    leagueType: leagueData.leagueType,
     battingCategories: leagueData.battingCategories,
     pitchingCategories: leagueData.pitchingCategories,
     rosterSlots: leagueData.rosterSlots,
