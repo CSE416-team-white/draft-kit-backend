@@ -69,12 +69,15 @@ export const TakenPlayerBaseSchema = z.tuple([
   z.string(), // team id
   z.string(), // position slot
   z.number().min(0), // price
+  z.string().max(2), // contract (empty string = no contract)
 ]);
 
-export const TakenPlayerSchema = z.preprocess(
-  (val) => (Array.isArray(val) && val.length > 4 ? val.slice(0, 4) : val),
-  TakenPlayerBaseSchema,
-);
+export const TakenPlayerSchema = z.preprocess((val) => {
+  if (!Array.isArray(val) || val.length < 4) return val;
+  const [playerId, teamId, slot, price, fifth] = val;
+  const contract = typeof fifth === 'string' ? fifth : '';
+  return [playerId, teamId, slot, price, contract];
+}, TakenPlayerBaseSchema);
 
 export const DraftPickSchema = z.tuple([
   z.number().int().min(1),   // pick number

@@ -9,18 +9,6 @@ type LeagueDraftDocument = Omit<LeagueDraft, '_id' | 'userId' | 'leagueId'> & {
 function isValidTakenPlayers(value: unknown): boolean {
   if (!Array.isArray(value)) return false;
 
-  function isValidDraftPickMeta(meta: unknown): boolean {
-    if (!Array.isArray(meta) || meta.length !== 3) return false;
-    const [pickNumber, nominatingTeamId, winningTeamId] = meta;
-    return (
-      typeof pickNumber === 'number' &&
-      Number.isInteger(pickNumber) &&
-      pickNumber >= 1 &&
-      typeof nominatingTeamId === 'string' &&
-      typeof winningTeamId === 'string'
-    );
-  }
-
   if (
     !value.every(
       (entry) =>
@@ -31,7 +19,8 @@ function isValidTakenPlayers(value: unknown): boolean {
         typeof entry[2] === 'string' &&
         typeof entry[3] === 'number' &&
         entry[3] >= 0 &&
-        (entry.length === 4 || isValidDraftPickMeta(entry[4])),
+        (entry.length === 4 ||
+          (typeof entry[4] === 'string' && entry[4].length <= 2)),
     )
   ) {
     return false;
@@ -108,7 +97,7 @@ const leagueDraftSchema = new Schema<LeagueDraftDocument>(
       validate: {
         validator: isValidTakenPlayers,
         message:
-          'taken_players must be [player_id, team_id, position_slot, price] or [player_id, team_id, position_slot, price, draft_pick] tuples',
+          'taken_players must be [player_id, team_id, position_slot, price] or [player_id, team_id, position_slot, price, contract] tuples',
       },
     },
     draft_picks: {
